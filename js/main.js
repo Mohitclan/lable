@@ -277,6 +277,20 @@ function openCompanyDialog() {
 
 /* ---------------------------------------------------------------- backup */
 
+/* Blank default sheet and no data. Saved templates and layouts are kept. */
+async function startOver() {
+  const ok = await confirmBox('Start over?', 'This clears the current sheet design and the loaded data, and goes back to the blank 4-label sheet. Your saved templates and layouts are kept.', 'Start over', true);
+  if (!ok) return;
+  mutate('fresh', () => { App.sheet = newSheet(); });
+  App.data = newData();
+  saveData();
+  App.ui.selLabel = null;
+  App.ui.selEl = null;
+  App.ui.dataPage = 0;
+  setMode('sheet');
+  toast('Blank sheet ready.', 'ok');
+}
+
 function exportBackup() {
   const data = { app: 'label-studio', version: 1, exportedAt: new Date().toISOString(), sheet: App.sheet, library: App.library, images: App.images };
   const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
@@ -479,7 +493,7 @@ function init() {
     const b = e.target.closest('button[data-act]');
     if (!b) return;
     menu.hidden = true;
-    ({ templates: openTemplatesDialog, layouts: openLayoutsDialog, company: openCompanyDialog, export: exportBackup, import: importBackup })[b.dataset.act]();
+    ({ fresh: startOver, templates: openTemplatesDialog, layouts: openLayoutsDialog, company: openCompanyDialog, export: exportBackup, import: importBackup })[b.dataset.act]();
   });
 
   $('#navPdf').addEventListener('click', generatePDF);

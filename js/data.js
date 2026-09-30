@@ -97,7 +97,12 @@ function setTable({ columns, rows }, meta) {
   App.ui.dataPage = 0;
   saveData();
   requestRender(true);
-  toast(`Loaded ${plural(rows.length, 'row')} from ${meta.fileName || 'your text'}.`, 'ok');
+  const unlinked = designFields().filter((f) => !d.mapping[f]);
+  if (unlinked.length) {
+    toast(`Loaded ${plural(rows.length, 'row')}. Your current design has fields this file doesn’t have (${unlinked.map((f) => `{{${f}}}`).join(', ')}) — match them, or make a new design from this file’s columns.`, 'warn');
+  } else {
+    toast(`Loaded ${plural(rows.length, 'row')} from ${meta.fileName || 'your text'}. Your label design is unchanged.`, 'ok');
+  }
 }
 
 async function loadDataFiles(files) {
@@ -458,6 +463,9 @@ const DataView = {
             set: (v) => { App.data.mapping = { ...App.data.mapping, [f]: v }; saveData(); requestRender(); },
           })),
           row(btn('Add another field…', () => { setMode('label'); setTimeout(insertFieldDialog, 60); }, 'small ghost')),
+          h('div', { class: 'mini-title' }, 'Want a different design for this file?'),
+          row(ibtn('sparkles', 'New design from my columns', designFromColumns, 'small', 'Replace the label design with a simple one built from this file’s columns'),
+            btn('Pick a template', () => { App.ui.open.templates = true; setMode('label'); if (isMobile()) showSheet('left'); }, 'small ghost')),
         ));
       } else {
         L.append(section('2 · Match your fields',
