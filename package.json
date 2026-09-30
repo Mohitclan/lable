@@ -1,0 +1,9 @@
+{
+  "name": "label-studio",
+  "private": true,
+  "type": "module",
+  "description": "A4 label sheet designer with data merge. Static site plus one Vercel function (api/extract.js).",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.129.0"
+  }
+}
