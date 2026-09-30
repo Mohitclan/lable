@@ -316,10 +316,16 @@ function dataWarnings() {
     if (!row || checked > 300 || over.length > 8) return;
     checked++;
     const l = App.sheet.labels[pos];
-    const merged = mergeDesign(l.design, recordFor(row));
+    const merged = mergeDesign(designForMerge(App.sheet, l), recordFor(row));
     if (labelWarnings({ ...l, design: merged }).some((w) => /cut off|cannot print/.test(w.msg))) over.push(d.rows.indexOf(row) + 1);
   }));
   if (over.length) out.push({ level: 'warn', ids: [], msg: `Text runs past the label edge or has unprintable characters on row${over.length > 1 ? 's' : ''} ${over.join(', ')}${over.length > 8 ? '…' : ''}. Make the text smaller or the box wider in step 2.` });
+  const src = App.sheet.labels.findIndex((l) => l.design.elements.length);
+  const blank = App.sheet.labels.map((l, i) => (l.design.elements.length ? 0 : i + 1)).filter(Boolean);
+  if (src >= 0 && blank.length) {
+    const many = blank.length > 1;
+    out.push({ level: 'info', ids: [], msg: `Label${many ? 's' : ''} ${blank.join(', ')} ${many ? 'have' : 'has'} no design of ${many ? 'their' : 'its'} own, so ${many ? 'they use' : 'it uses'} Label ${src + 1}’s design.` });
+  }
   if (d.notes) out.push({ level: 'info', ids: [], msg: `AI note: ${d.notes}` });
   return out;
 }
@@ -365,7 +371,7 @@ const DataView = {
         const fs = clamp(Math.min(l.w, l.h) * 0.06, 2, 5);
         o += `<text x="${l.w / 2}" y="${l.h / 2 + fs * 0.35}" text-anchor="middle" font-family="${FONT_CSS.helvetica}" font-size="${fs}" fill="#9aa3af">left empty</text>`;
       } else {
-        const design = row ? mergeDesign(l.design, recordFor(row)) : l.design;
+        const design = row ? mergeDesign(designForMerge(App.sheet, l), recordFor(row)) : l.design;
         o += designSVG(l, design, 'dv' + i);
         o += `<rect width="${l.w}" height="${l.h}" rx="${r}" fill="none" stroke="${l.border > 0 ? esc(l.borderColor) : '#cfd4dc'}" stroke-width="${Math.max(l.border || 0, px)}"/>`;
       }

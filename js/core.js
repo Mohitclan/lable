@@ -573,3 +573,14 @@ function saveData() {
     App.onSaved && App.onSaved(false, err);
   }
 }
+
+/* The design a position prints with when filling from data. A position with no design of its own
+   borrows the first designed label's design, scaled evenly to fit, so designing one label is enough. */
+function designForMerge(sheet, label) {
+  if (label.design.elements.length) return label.design;
+  const src = sheet.labels.find((l) => l.design.elements.length);
+  if (!src) return label.design;
+  const d = clone(src.design);
+  if (Math.abs(src.w - label.w) > 0.01 || Math.abs(src.h - label.h) > 0.01) scaleDesign(d, src.w, src.h, label.w, label.h);
+  return d;
+}

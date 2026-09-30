@@ -13,7 +13,7 @@ function buildPDF(sheet, data = dataActive() ? App.data : null) {
     mergePlan(sheet, data).pages.forEach((page, p) => {
       if (p) doc.addPage('a4', 'portrait');
       page.forEach((row, pos) => {
-        if (row) drawLabelPDF(doc, sheet.labels[pos], sheet, mergeDesign(sheet.labels[pos].design, recordFor(row, data)));
+        if (row) drawLabelPDF(doc, sheet.labels[pos], sheet, mergeDesign(designForMerge(sheet, sheet.labels[pos]), recordFor(row, data)));
       });
     });
   } else {
