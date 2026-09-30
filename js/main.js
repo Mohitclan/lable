@@ -279,7 +279,7 @@ function openCompanyDialog() {
 
 /* Blank default sheet and no data. Saved templates and layouts are kept. */
 async function startOver() {
-  const ok = await confirmBox('Start over?', 'This clears the current sheet design and the loaded data, and goes back to the blank 4-label sheet. Your saved templates and layouts are kept.', 'Start over', true);
+  const ok = await confirmBox('Start over?', 'This clears everything you are working on — the layout, every label design and the loaded data — and goes back to the blank 4-label sheet. Your saved templates and layouts in the Library are kept.', 'Start over', true);
   if (!ok) return;
   mutate('fresh', () => { App.sheet = newSheet(); });
   App.data = newData();
@@ -287,6 +287,8 @@ async function startOver() {
   App.ui.selLabel = null;
   App.ui.selEl = null;
   App.ui.dataPage = 0;
+  App.ui.zoom = { sheet: null, label: null, data: null };
+  App.ui.tplChoice = '';
   setMode('sheet');
   toast('Blank sheet ready.', 'ok');
 }
@@ -483,6 +485,7 @@ function init() {
   document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => setMode(t.dataset.mode)));
   $('#btnUndo').addEventListener('click', undo);
   $('#btnRedo').addEventListener('click', redo);
+  $('#btnReset').addEventListener('click', startOver);
   $('#btnPdf').addEventListener('click', generatePDF);
   $('#btnPrint').addEventListener('click', printPDF);
 

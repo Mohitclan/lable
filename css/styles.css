@@ -52,6 +52,8 @@ button { font: inherit; color: inherit; }
 .save-status { color: var(--muted); font-size: 12px; margin-right: 4px; white-space: nowrap; }
 .save-status.bad { color: var(--danger); font-weight: 600; }
 .icon-group { display: flex; gap: 2px; }
+.reset-btn { color: var(--text-2); }
+.reset-btn:hover { color: var(--danger); background: #fef2f2; }
 
 /* ---------- buttons ---------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--line-2); background: #fff; padding: 7px 13px; border-radius: 8px; cursor: pointer; white-space: nowrap; font-weight: 500; box-shadow: var(--shadow-sm); transition: background .12s, border-color .12s; }
@@ -267,7 +269,8 @@ input[type=color] { flex: none; width: 42px; height: 30px; padding: 3px; border:
 
 @media (max-width: 1200px) {
   .workspace { grid-template-columns: 272px minmax(0, 1fr) 290px; }
-  .save-status, .lib-text { display: none; }
+  .save-status, .lib-text, .reset-text { display: none; }
+  .reset-btn { padding: 7px; }
   .brand { margin-right: 6px; }
 }
 @media (max-width: 1000px) {
@@ -287,7 +290,7 @@ input[type=color] { flex: none; width: 42px; height: 30px; padding: 3px; border:
   }
   .topbar { gap: 4px; padding: 8px; padding-top: max(8px, env(safe-area-inset-top)); }
   .brand { margin-right: 2px; }
-  .brand-name, .save-status, #btnPdf, #btnPrint, .tab-sep, .tab .full, .lib-text { display: none; }
+  .brand-name, .save-status, #btnPdf, #btnPrint, .tab-sep, .tab .full, .lib-text, .reset-text { display: none; }
   .tab .short { display: inline; }
   .tab:not(.active) .short { display: none; }
   .tab:not(.active) { padding: 6px; }
