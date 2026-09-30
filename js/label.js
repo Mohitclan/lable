@@ -633,7 +633,28 @@ const LabelView = {
       );
     } else if (e.type === 'qr') {
       kids.push(
-        textAreaField({ label: 'QR content — a link, text, or {{field}}', rows: 3, get: get('data', ''), set: set('data') }),
+        textAreaField({ label: 'QR content — a link, text, or {{field}}', id: 'propQR', rows: 3, get: get('data', ''), set: set('data') }),
+        fieldChoices().length ? selectField({
+          label: 'Different QR on every label — take it from', wide: true,
+          options: [['', 'Choose a data field…'], ...fieldChoices().map((f) => [f, f])],
+          get: () => '',
+          set: (v) => {
+            if (!v) return;
+            setElProp(id, 'data', `{{${v}}}`);
+            App.data.mapping = autoMap(designFields(), App.data.columns, App.data.mapping);
+            saveData();
+            const ta = $('#propQR');
+            if (ta) ta.value = `{{${v}}}`;
+          },
+        }) : null,
+        h('p', { class: 'hint' }, dynText(() => {
+          const x = E();
+          if (!x) return '';
+          const used = [...String(x.data || '').matchAll(FIELD_RE)].map((m) => m[1]);
+          return used.length
+            ? `Each label gets its own QR code from ${used.join(', ')}. Add text around the field for a link, e.g. https://mysite.com/track/{{${used[0]}}}`
+            : 'Every label gets this same QR code. Put a {{field}} in the content to make it different on each label.';
+        })),
         colorField({ label: 'Colour', get: get('color'), set: set('color') }),
         colorField({ label: 'Background', get: get('bg', '#ffffff'), set: set('bg'), disabled: () => !!(E() && E().bgNone) }),
         checkField({ label: 'Transparent background', get: get('bgNone'), set: set('bgNone') }),
