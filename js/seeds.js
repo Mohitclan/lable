@@ -81,7 +81,7 @@ function seedLibrary() {
         seedText({ text: 'Phone: {{Phone}}', size: 11, x: 8, y: 58, w: W - 16 }),
         seedLine({ x: 8, y: 66.5, w: W - 16, thickness: 0.3, color: '#9ca3af' }),
         seedText({ text: 'Order {{Order ID}}', size: 10, color: '#374151', x: 8, y: 74, w: 50 }),
-        seedQR({ data: '{{Order ID}}', x: W - 8 - 26, y: 74, w: 26, h: 26 }),
+        seedQR({ data: 'Name: {{Name}}\nAddress: {{Address}}\nPhone: {{Phone}}\nOrder ID: {{Order ID}}', x: W - 8 - 26, y: 74, w: 26, h: 26 }),
       ],
     },
   };

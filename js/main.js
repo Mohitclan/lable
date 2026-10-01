@@ -333,6 +333,15 @@ function importBackup() {
 /* ---------------------------------------------------------------- PDF */
 
 async function preflight() {
+  if (dataActive() && qrStatus().kind === 'same') {
+    const qs = qrStatus();
+    const choice = await openModal('Every QR code is the same', (body, foot, close) => {
+      body.append(h('p', { class: 'modal-text' }, `All your labels have the same QR code, which opens “${qs.data.length > 60 ? qs.data.slice(0, 60) + '…' : qs.data}”. Should each label’s QR code show its own customer’s details instead?`));
+      foot.append(btn('Keep the same QR', () => close('keep'), 'ghost'), ibtn('qr', 'Use customer details', () => close('details'), 'primary'));
+    });
+    if (!choice) return false;
+    if (choice === 'details') { qrFixedToDetails(); saveData(); renderNow(true); }
+  }
   if (dataActive()) {
     const unlinked = designFields().filter((f) => !App.data.mapping[f]);
     if (unlinked.length && !(await confirmBox('Some fields are not linked', `${unlinked.map((f) => `{{${f}}}`).join(', ')} ${unlinked.length === 1 ? 'is' : 'are'} not linked to a data column and will print empty. Continue?`, 'Continue anyway'))) return false;

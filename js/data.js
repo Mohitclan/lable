@@ -93,15 +93,17 @@ function setTable({ columns, rows }, meta) {
   }
   const d = App.data;
   Object.assign(d, { columns, rows, skip: [], fileName: meta.fileName || '', source: meta.source, notes: meta.notes || '', enabled: true });
+  const qrSwitched = qrFixedToDetails();
   d.mapping = autoMap(designFields(), columns, d.mapping);
   App.ui.dataPage = 0;
   saveData();
   requestRender(true);
+  const qrNote = qrSwitched ? ' Each label’s QR code now shows its own customer’s details.' : '';
   const unlinked = designFields().filter((f) => !d.mapping[f]);
   if (unlinked.length) {
-    toast(`Loaded ${plural(rows.length, 'row')}. Your current design has fields this file doesn’t have (${unlinked.map((f) => `{{${f}}}`).join(', ')}) — match them, or make a new design from this file’s columns.`, 'warn');
+    toast(`Loaded ${plural(rows.length, 'row')}. Your current design has fields this file doesn’t have (${unlinked.map((f) => `{{${f}}}`).join(', ')}) — match them, or make a new design from this file’s columns.${qrNote}`, 'warn');
   } else {
-    toast(`Loaded ${plural(rows.length, 'row')} from ${meta.fileName || 'your text'}. Your label design is unchanged.`, 'ok');
+    toast(`Loaded ${plural(rows.length, 'row')} from ${meta.fileName || 'your text'}.${qrNote || ' Your label design is unchanged.'}`, 'ok');
   }
 }
 
@@ -226,6 +228,19 @@ function qrStatus() {
   return fields.length ? { kind: 'own', fields } : { kind: 'same', data: String(qrs[0].data || '') };
 }
 
+/* With data loaded, a QR code with fixed content (such as the template's https://www.company.com)
+   would print the same on every label, so it is switched to that label's customer details.
+   QR codes that already use a {{field}} are left alone. Returns how many were switched. */
+function qrFixedToDetails() {
+  if (!App.data.columns.length) return 0;
+  const text = detailsQRText();
+  const fixed = App.sheet.labels.flatMap((l) => l.design.elements.filter((e) => e.type === 'qr' && !String(e.data || '').match(FIELD_RE)));
+  if (!fixed.length) return 0;
+  mutate('qr-auto-details', () => fixed.forEach((q) => { q.data = text; }));
+  App.data.mapping = autoMap(designFields(), App.data.columns, App.data.mapping);
+  return fixed.length;
+}
+
 /* Every designed label's QR code carries that row's full details; a label without a QR gets one
    in its bottom-right corner. */
 function qrShowDetails() {
@@ -294,6 +309,7 @@ async function applyDataToAll() {
   }
   d.enabled = true;
   d.startAt = 1;
+  qrFixedToDetails();
   d.mapping = autoMap(designFields(), d.columns, d.mapping);
   saveData();
   App.ui.previewData = true;

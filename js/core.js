@@ -386,6 +386,7 @@ function loadState() {
   App.library.company = App.library.company || {};
   App.library.layouts.forEach((x) => migrateSheet(x.sheet));
   App.sheet = sheet && Array.isArray(sheet.labels) ? migrateSheet(sheet) : newSheet();
+  if (upgradeStarterTemplates()) saveSoon();
   gcImages();
   if (!lib) { App.imagesDirty = true; saveNow(); }
 }
@@ -607,4 +608,18 @@ function syncLinkedDesign() {
 function othersDiffer(src) {
   const shape = (d) => JSON.stringify(d.elements.map(({ id, ...rest }) => rest));
   return App.sheet.labels.some((l) => l !== src && l.design.elements.length && shape(l.design) !== shape(src.design));
+}
+
+/* Older copies of the starter "Address Label (from data)" template put only the order number in the
+   QR code; upgrade them so scanning shows the customer's details. */
+function upgradeStarterTemplates() {
+  const full = 'Name: {{Name}}\nAddress: {{Address}}\nPhone: {{Phone}}\nOrder ID: {{Order ID}}';
+  let changed = false;
+  for (const t of App.library.templates) {
+    if (t.name !== 'Address Label (from data)') continue;
+    for (const e of t.design.elements) {
+      if (e.type === 'qr' && e.data === '{{Order ID}}') { e.data = full; changed = true; }
+    }
+  }
+  return changed;
 }
