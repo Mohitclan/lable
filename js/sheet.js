@@ -528,7 +528,7 @@ const SheetView = {
       numField({ label: 'Corner radius', get: () => c().radius, set: setCfg('radius'), min: 0, max: 50 }),
       numField({ label: 'Border', get: () => c().border, set: setCfg('border'), min: 0, max: 5, step: 0.1 }),
       colorField({ label: 'Border colour', get: () => c().borderColor, set: (v) => updateCfg({ borderColor: v }, { key: 'cfg.borderColor' }) }),
-      checkField({ label: 'Print the borders as cut lines', get: () => App.sheet.printBorders, set: (v) => mutate('pb', () => { App.sheet.printBorders = v; }) }),
+      borderPrintField(),
     ));
 
     L.append(h('div', { class: 'panel-foot' }, ibtn('undo', 'Reset to the default layout', resetSheetDefaults, 'ghost small')));
@@ -563,6 +563,7 @@ const SheetView = {
       }),
       row(btn('Save', () => saveLayout(false), 'small', 'Save this sheet and its label designs'), btn('Save as…', () => saveLayout(true), 'small ghost'), btn('Manage…', openLayoutsDialog, 'small ghost')),
     ));
+    R.append(section('Printing', borderPrintField()));
     R.append(group('pages', 'Pages', { open: false },
       numField({ label: 'Copies', unit: '', step: 1, int: true, min: 1, max: 100, get: () => App.sheet.copies, set: (v) => mutate('copies', () => { App.sheet.copies = v; }), title: 'Identical A4 pages in the PDF' }),
       hint('When data is loaded in step 3, the data decides the number of pages instead.'),
@@ -629,3 +630,25 @@ const SheetView = {
     });
   },
 };
+
+/* Label borders in the PDF: one switch, shown next to Download as well as in Corners & border. */
+function setPrintBorders(on) {
+  mutate('print-borders', () => {
+    const s = App.sheet;
+    s.printBorders = on;
+    if (on) {
+      // A border of 0 mm would print nothing, so turning borders on gives them a visible line.
+      if (!(s.cfg.border > 0)) s.cfg.border = 0.3;
+      s.labels.forEach((l) => { if (!(l.border > 0)) l.border = s.cfg.border; });
+    }
+  });
+}
+
+function borderPrintField() {
+  return checkField({
+    label: 'Print label borders in the PDF',
+    title: 'Draws each label’s outline in the PDF. Thickness and colour are in Layout → Corners & border.',
+    get: () => App.sheet.printBorders,
+    set: setPrintBorders,
+  });
+}

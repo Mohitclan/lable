@@ -107,7 +107,7 @@ function newLabel(props = {}) {
 function newSheet() {
   const s = {
     name: 'Standard 4 Labels', layoutId: null, mode: 'grid', cfg: clone(DEFAULT_CFG),
-    labels: [], printBorders: false, allowOverlap: false, copies: 1, linked: true,
+    labels: [], printBorders: true, allowOverlap: false, copies: 1, linked: true,
   };
   syncGrid(s);
   return s;

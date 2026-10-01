@@ -603,6 +603,7 @@ const DataView = {
           h('div', {}, h('b', {}, dynText(() => String(this.plan() ? this.plan().records : 0))), h('span', {}, 'rows')),
           h('div', {}, h('b', {}, dynText(() => String(this.plan() ? this.plan().labels : 0))), h('span', {}, 'labels')),
           h('div', {}, h('b', {}, dynText(() => String(this.plan() ? this.plan().pages.length : 0))), h('span', {}, 'pages'))),
+        borderPrintField(),
         ibtn('download', 'Download PDF', generatePDF, 'primary block'),
         ibtn('printer', 'Print', printPDF, 'block'),
       ));
