@@ -211,6 +211,34 @@ async function clearData() {
   requestRender(true);
 }
 
+/* One click: every label position gets the design, and every data row gets its own label. */
+async function applyDataToAll() {
+  const d = App.data;
+  if (!d.rows.length) { toast('Add a CSV or Excel file first.', 'warn'); return; }
+  const labels = App.sheet.labels;
+  const edit = labelById(App.ui.editLabelId);
+  const src = edit && edit.design.elements.length ? edit : labels.find((l) => l.design.elements.length);
+  if (!src || !designFields().length) {
+    await designFromColumns();
+    if (!designFields().length) return;
+  } else {
+    const differing = labels.filter((l) => l !== src && l.design.elements.length
+      && JSON.stringify(l.design.elements.map(({ id, ...rest }) => rest)) !== JSON.stringify(src.design.elements.map(({ id, ...rest }) => rest)));
+    if (differing.length && !(await confirmBox('Use one design on every label?',
+      `Label ${labelIndex(src.id) + 1}’s design will be copied to all ${labels.length} labels, replacing the different design on ${plural(differing.length, 'label')}. Undo with Ctrl+Z.`, 'Apply to all'))) return;
+    mutate('apply-all', () => labels.forEach((l) => { if (l !== src) applyDesignToLabel(l, src.design, src.w, src.h, true); }));
+  }
+  d.enabled = true;
+  d.startAt = 1;
+  d.mapping = autoMap(designFields(), d.columns, d.mapping);
+  saveData();
+  App.ui.previewData = true;
+  App.ui.dataPage = 0;
+  setMode('data');
+  const plan = mergePlan();
+  toast(`Done — ${plan.records === 1 ? '1 person' : `${plan.records} people`}, one label each, on ${plural(plan.pages.length, 'page')}.`, 'ok');
+}
+
 /* Quick start: build a simple design from the data columns and put it on every label. */
 async function designFromColumns() {
   const cols = App.data.columns.slice(0, 8);
@@ -433,6 +461,7 @@ const DataView = {
       L.append(section('1 · Your data',
         h('div', { class: 'file-card' }, icon(d.source === 'ai' ? 'sparkles' : 'table', 20),
           h('div', {}, h('strong', {}, d.fileName || 'Data'), h('span', {}, `${plural(d.rows.length, 'row')} · ${plural(d.columns.length, 'column')}${d.source === 'ai' ? ' · read by AI' : ''}`))),
+        ibtn('layout', 'Apply to all labels', applyDataToAll, 'primary block', 'Put the design on every label and give each row of your file its own label'),
         row(ibtn('table', 'View & edit', openDataTable, 'small'), ibtn('upload', 'Replace', () => $('#dataPick').click(), 'small ghost'), ibtn('trash', '', clearData, 'small ghost danger', 'Remove data')),
         d.source === 'ai' ? note('alert', 'AI can misread things — check the rows before printing.', 'warn') : null,
         h('input', { type: 'file', id: 'dataPick', hidden: true, accept: '.csv,.tsv,.xlsx,.xls,.xlsm,.ods,.pdf,.txt,image/*', onchange: (e) => { if (e.target.files.length) loadDataFiles([...e.target.files]); e.target.value = ''; } }),

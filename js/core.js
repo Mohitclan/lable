@@ -584,3 +584,11 @@ function designForMerge(sheet, label) {
   if (Math.abs(src.w - label.w) > 0.01 || Math.abs(src.h - label.h) > 0.01) scaleDesign(d, src.w, src.h, label.w, label.h);
   return d;
 }
+
+/* What a label position shows on screen while data is loaded: the design that position prints with,
+   filled with the data row that lands on it on page 1. Null when there is nothing to preview. */
+function previewDesignFor(sheet, label, pos) {
+  if (!App.ui.previewData || !dataActive() || !designFields(sheet).length) return null;
+  const row = mergePlan(sheet).pages[0][pos];
+  return row ? mergeDesign(designForMerge(sheet, label), recordFor(row)) : null;
+}

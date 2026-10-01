@@ -316,8 +316,9 @@ const SheetView = {
     s.labels.forEach((l, i) => {
       const r = cornerR(l);
       o += `<g transform="translate(${l.x} ${l.y})">`;
-      o += designSVG(l, l.design, 'sc' + i);
-      if (!l.design.elements.length) o += this.placeholder(l, i);
+      const shown = previewDesignFor(s, l, i) || l.design;
+      o += designSVG(l, shown, 'sc' + i);
+      if (!shown.elements.length) o += this.placeholder(l, i);
       o += l.border > 0
         ? `<rect width="${l.w}" height="${l.h}" rx="${r}" fill="none" stroke="${esc(l.borderColor)}" stroke-width="${Math.max(l.border, px)}"/>`
         : `<rect width="${l.w}" height="${l.h}" rx="${r}" fill="none" stroke="#cfd4dc" stroke-width="${px}" stroke-dasharray="${3 * px} ${2 * px}"/>`;
@@ -464,7 +465,7 @@ const SheetView = {
   panelKey() {
     const s = App.sheet;
     return ['sheet', s.mode, App.ui.selLabel, s.labels.length, s.cfg.cols, s.cfg.rows, s.cfg.autoFit,
-      App.library.templates.length, App.library.layouts.length, s.layoutId].join('|');
+      App.library.templates.length, App.library.layouts.length, s.layoutId, App.data.rows.length].join('|');
   },
 
   renderPanels() {
@@ -546,6 +547,13 @@ const SheetView = {
         : `${s().labels.length}, mixed sizes`)),
       note('pen', 'Click a label to change just that position. Double-click it to design it.'),
     ));
+    if (App.data.rows.length) {
+      R.append(section('Your data',
+        kv('File', () => App.data.fileName || 'Data'),
+        kv('People', () => String(dataRows().length)),
+        ibtn('layout', 'Apply to all labels', applyDataToAll, 'primary block', 'Give each row of your file its own label'),
+      ));
+    }
     R.append(group('saved', 'Saved layouts', { meta: String(App.library.layouts.length) },
       selectField({
         label: 'Open', wide: true,

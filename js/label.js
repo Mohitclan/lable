@@ -491,12 +491,13 @@ const LabelView = {
 
   /* ---------------- panels */
 
-  /* The design as shown on screen: filled with the first data row when preview is on. */
+  /* The design as shown on screen: filled with the data row that lands on this label when preview is on. */
   shownDesign() {
-    const d = this.label().design;
-    if (!App.ui.previewData || !dataActive() || !designFields().length) return d;
-    const first = dataRows()[0];
-    return first ? mergeDesign(d, recordFor(first)) : d;
+    const l = this.label();
+    const d = l.design;
+    if (!App.ui.previewData || !dataActive() || !designFields().length || !d.elements.length) return d;
+    const row = mergePlan().pages[0][labelIndex(l.id)] || dataRows()[0];
+    return row ? mergeDesign(d, recordFor(row)) : d;
   },
 
   panelKey() {
@@ -709,7 +710,7 @@ const LabelView = {
       h('strong', {}, `Label ${i + 1} of ${App.sheet.labels.length}`),
       many ? btn(icon('right', 16), () => stepLabel(1), 'icon ghost', 'Next label (PageDown)') : null,
       h('span', { class: 'muted-sm' }, `${fmt(l.w)} × ${fmt(l.h)} mm`),
-      App.ui.previewData && dataActive() && designFields().length ? h('span', { class: 'badge' }, 'Showing data row 1') : null,
+      App.ui.previewData && dataActive() && designFields().length ? h('span', { class: 'badge' }, 'Showing your data') : null,
     ]);
     const box = $('#layers');
     if (box) {
