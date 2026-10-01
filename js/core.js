@@ -107,7 +107,7 @@ function newLabel(props = {}) {
 function newSheet() {
   const s = {
     name: 'Standard 4 Labels', layoutId: null, mode: 'grid', cfg: clone(DEFAULT_CFG),
-    labels: [], printBorders: false, allowOverlap: false, copies: 1,
+    labels: [], printBorders: false, allowOverlap: false, copies: 1, linked: true,
   };
   syncGrid(s);
   return s;
@@ -591,4 +591,20 @@ function previewDesignFor(sheet, label, pos) {
   if (!App.ui.previewData || !dataActive() || !designFields(sheet).length) return null;
   const row = mergePlan(sheet).pages[0][pos];
   return row ? mergeDesign(designForMerge(sheet, label), recordFor(row)) : null;
+}
+
+/* "All labels" editing: the label being designed is copied to every other position
+   (scaled evenly when sizes differ). Runs inside the same undo step as the edit. */
+function syncLinkedDesign() {
+  const src = labelById(App.ui.editLabelId);
+  if (!src) return;
+  for (const l of App.sheet.labels) {
+    if (l !== src) applyDesignToLabel(l, src.design, src.w, src.h, true);
+  }
+}
+
+/* True when another label has a design that differs from this one's. */
+function othersDiffer(src) {
+  const shape = (d) => JSON.stringify(d.elements.map(({ id, ...rest }) => rest));
+  return App.sheet.labels.some((l) => l !== src && l.design.elements.length && shape(l.design) !== shape(src.design));
 }

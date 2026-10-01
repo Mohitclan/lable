@@ -515,6 +515,15 @@ const LabelView = {
     const l = this.label();
     const lid = l.id;
 
+    if (App.sheet.labels.length > 1) {
+      L.append(section('Changes apply to',
+        segField({ label: '', wide: true, options: [['one', 'This label only'], ['all', 'All labels']], get: () => (App.sheet.linked ? 'all' : 'one'), set: (v) => setLinked(v === 'all') }),
+        h('p', { class: 'hint' }, dynText(() => (App.sheet.linked
+          ? `Every change here is copied to all ${App.sheet.labels.length} labels.`
+          : `Only Label ${labelIndex(App.ui.editLabelId) + 1} changes; the other labels keep their own design.`))),
+      ));
+    }
+
     const add = (name, label, fn, title) => h('button', { type: 'button', class: 'tool', title: title || label, onclick: fn }, icon(name, 20), h('span', {}, label));
     L.append(section('Add to label',
       h('div', { class: 'tools' },
@@ -710,6 +719,7 @@ const LabelView = {
       h('strong', {}, `Label ${i + 1} of ${App.sheet.labels.length}`),
       many ? btn(icon('right', 16), () => stepLabel(1), 'icon ghost', 'Next label (PageDown)') : null,
       h('span', { class: 'muted-sm' }, `${fmt(l.w)} × ${fmt(l.h)} mm`),
+      many && App.sheet.linked ? h('span', { class: 'badge' }, 'Editing all labels') : null,
       App.ui.previewData && dataActive() && designFields().length ? h('span', { class: 'badge' }, 'Showing your data') : null,
     ]);
     const box = $('#layers');
@@ -764,4 +774,18 @@ function insertFieldDialog() {
     foot.append(btn('Cancel', () => close(), 'ghost'), btn('Add field', () => add(input.value), 'primary'));
     setTimeout(() => input.focus({ preventScroll: true }), 30);
   });
+}
+
+/* Switch between editing one label and editing all labels together. */
+async function setLinked(on) {
+  if (!!App.sheet.linked === on) return;
+  const src = labelById(App.ui.editLabelId);
+  if (on && src && othersDiffer(src)
+    && !(await confirmBox('Make every label match this one?', `All labels will get Label ${labelIndex(src.id) + 1}’s design, and from now on every change here applies to all of them. Undo with Ctrl+Z.`, 'Apply to all labels'))) {
+    requestRender(true);
+    return;
+  }
+  mutate('linked', () => { App.sheet.linked = on; });
+  toast(on ? 'Changes now apply to all labels.' : 'Changes now apply to this label only.', 'ok');
+  requestRender(true);
 }

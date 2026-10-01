@@ -473,7 +473,11 @@ function bindCanvasPointers(cv, wrap) {
 /* ---------------------------------------------------------------- init */
 
 function init() {
-  App.onChange = (structural) => { requestRender(!!structural); saveSoon(); };
+  App.onChange = (structural) => {
+    if (App.ui.mode === 'label' && App.sheet.linked) syncLinkedDesign();
+    requestRender(!!structural);
+    saveSoon();
+  };
   App.onSaved = (ok) => {
     const s = $('#saveStatus');
     s.textContent = ok ? 'All changes saved' : 'Not saved — browser storage is full. Export a backup.';

@@ -211,6 +211,19 @@ async function clearData() {
   requestRender(true);
 }
 
+/* Adds the data columns to an existing design as one {{field}} text block, in free space below
+   what is already there (or at the bottom), without touching anything else. */
+function addColumnsToDesign(l) {
+  const cols = App.data.columns.slice(0, 8);
+  if (!cols.length) return;
+  const m = Math.min(6, l.w * 0.07);
+  const base = Math.round(clamp(Math.min(l.w, l.h) * 0.09, 7, 13) * 2) / 2;
+  const e = newTextEl(l, { text: cols.map((c) => `{{${c}}}`).join('\n'), size: base, align: 'left', x: m, y: 0, w: l.w - 2 * m });
+  const below = l.design.elements.length ? Math.max(...l.design.elements.map((x) => x.y + x.h)) + 3 : m;
+  e.y = below + e.h <= l.h - m ? below : Math.max(m, l.h - m - e.h);
+  l.design.elements.push(e);
+}
+
 /* One click: every label position gets the design, and every data row gets its own label. */
 async function applyDataToAll() {
   const d = App.data;
@@ -218,15 +231,24 @@ async function applyDataToAll() {
   const labels = App.sheet.labels;
   const edit = labelById(App.ui.editLabelId);
   const src = edit && edit.design.elements.length ? edit : labels.find((l) => l.design.elements.length);
-  if (!src || !designFields().length) {
+  let added = false;
+  if (!src) {
     await designFromColumns();
     if (!designFields().length) return;
   } else {
-    const differing = labels.filter((l) => l !== src && l.design.elements.length
-      && JSON.stringify(l.design.elements.map(({ id, ...rest }) => rest)) !== JSON.stringify(src.design.elements.map(({ id, ...rest }) => rest)));
+    // Ask first, and only when other labels really have a design of their own that would be replaced.
+    const shape = (x) => JSON.stringify(x.design.elements.map(({ id, ...rest }) => rest));
+    const differing = labels.filter((l) => l !== src && l.design.elements.length && shape(l) !== shape(src));
     if (differing.length && !(await confirmBox('Use one design on every label?',
       `Label ${labelIndex(src.id) + 1}’s design will be copied to all ${labels.length} labels, replacing the different design on ${plural(differing.length, 'label')}. Undo with Ctrl+Z.`, 'Apply to all'))) return;
-    mutate('apply-all', () => labels.forEach((l) => { if (l !== src) applyDesignToLabel(l, src.design, src.w, src.h, true); }));
+    mutate('apply-all', () => {
+      // Keep the person's own design: when it has no data fields yet, add the columns into it.
+      if (!designFields().length) {
+        addColumnsToDesign(src);
+        added = true;
+      }
+      labels.forEach((l) => { if (l !== src) applyDesignToLabel(l, src.design, src.w, src.h, true); });
+    });
   }
   d.enabled = true;
   d.startAt = 1;
@@ -236,7 +258,8 @@ async function applyDataToAll() {
   App.ui.dataPage = 0;
   setMode('data');
   const plan = mergePlan();
-  toast(`Done — ${plan.records === 1 ? '1 person' : `${plan.records} people`}, one label each, on ${plural(plan.pages.length, 'page')}.`, 'ok');
+  toast(`Done — ${plan.records === 1 ? '1 person' : `${plan.records} people`}, one label each, on ${plural(plan.pages.length, 'page')}.`
+    + (added ? ' Your design was kept; your columns were added to it as a text block you can move in step 2.' : ''), 'ok');
 }
 
 /* Quick start: build a simple design from the data columns and put it on every label. */
@@ -499,8 +522,11 @@ const DataView = {
       } else {
         L.append(section('2 · Match your fields',
           note('field', 'Your label has no data fields yet. A data field is a placeholder like {{Name}} that each row fills in.'),
-          ibtn('sparkles', 'Create a design from my columns', designFromColumns, 'primary block'),
-          row(btn('Add fields myself in step 2', () => setMode('label'), 'small ghost')),
+          App.sheet.labels.some((l) => l.design.elements.length)
+            ? ibtn('layout', 'Add my columns to my design', applyDataToAll, 'primary block', 'Keeps your design and adds the columns to it')
+            : ibtn('sparkles', 'Create a design from my columns', designFromColumns, 'primary block'),
+          row(btn('Add fields myself in step 2', () => setMode('label'), 'small ghost'),
+            App.sheet.labels.some((l) => l.design.elements.length) ? btn('Replace with a new design', designFromColumns, 'small ghost') : null),
         ));
       }
 
