@@ -241,6 +241,76 @@ function qrFixedToDetails() {
   return fixed.length;
 }
 
+/* ---------------------------------------------------------------- details as text */
+
+const hasField = (s) => !!String(s || '').match(FIELD_RE);
+
+/* Designed labels whose readable text carries no data field (the customer is only in the QR). */
+function designedWithoutTextFields() {
+  return App.sheet.labels.filter((l) => l.design.elements.length
+    && !l.design.elements.some((e) => e.type === 'text' && hasField(e.text)));
+}
+
+/* A bold first column (usually the name) and the other columns under it, at the largest size
+   where every row of the data fits inside `area` (mm, label-local). */
+function fitDetails(area, cols) {
+  const rows = dataRows().slice(0, 200);
+  const recs = rows.map((r) => Object.fromEntries(App.data.columns.map((c, i) => [c, r[i] == null ? '' : String(r[i])])));
+  const make = (pt) => {
+    const title = { id: uid(), type: 'text', text: `{{${cols[0]}}}`, font: 'helvetica', size: Math.round(pt * 1.15 * 2) / 2, bold: true, italic: false, align: 'left', color: '#111827', lineHeight: 1.2, x: area.x, y: area.y, w: area.w, h: 0 };
+    title.h = textMetrics(title).height;
+    const body = { ...title, id: uid(), text: cols.slice(1).map((c) => `{{${c}}}`).join('\n'), size: pt, bold: false, color: '#374151', y: area.y + title.h + 1.5 };
+    body.h = textMetrics(body).height;
+    return cols.length > 1 ? [title, body] : [title];
+  };
+  const fits = (els) => recs.every((rec) => {
+    let y = area.y;
+    return els.every((e, i) => {
+      const m = { ...e, text: fillFields(e.text, rec), y };
+      m.h = textMetrics(m).height;
+      y += m.h + (i === 0 ? 1.5 : 0);
+      const wide = m.text.split('\n').some((ln) => textWidthMM(m, ln) > area.w + 0.2);
+      return !wide && m.y + m.h <= area.y + area.h + 0.2;
+    });
+  });
+  for (let pt = 14; pt >= 6; pt -= 0.5) {
+    const els = make(pt);
+    if (fits(els)) return els;
+  }
+  return make(6);
+}
+
+/* Prints the data on each label as text too. A label that holds only a QR code gets the QR on the
+   right and the details on the left; otherwise the details go into the free space. */
+function showDetailsAsText() {
+  const cols = App.data.columns.slice(0, 8);
+  if (!cols.length) { toast('Add a CSV or Excel file first.', 'warn'); return; }
+  const targets = designedWithoutTextFields();
+  if (!targets.length) return;
+  mutate('details-text', () => {
+    for (const l of targets) {
+      const m = Math.min(5, l.w * 0.06);
+      const qr = l.design.elements.find((e) => e.type === 'qr');
+      const others = l.design.elements.filter((e) => e !== qr);
+      let area;
+      if (qr && !others.length) {
+        const size = clamp(Math.min(l.h - 2 * m, l.w * 0.38), 12, 40);
+        Object.assign(qr, { x: l.w - m - size, y: (l.h - size) / 2, w: size, h: size });
+        area = { x: m, y: m, w: l.w - 3 * m - size, h: l.h - 2 * m };
+      } else {
+        const bottom = Math.max(m, ...l.design.elements.map((e) => e.y + e.h)) + 2;
+        area = { x: m, y: bottom, w: l.w - 2 * m, h: l.h - m - bottom };
+        if (area.h < 12 && qr && qr.x - 2 * m > 25) area = { x: m, y: m, w: qr.x - 2 * m, h: l.h - 2 * m };
+      }
+      l.design.elements.push(...fitDetails(area, cols));
+    }
+  });
+  App.data.mapping = autoMap(designFields(), App.data.columns, App.data.mapping);
+  saveData();
+  requestRender(true);
+  toast(`The customer’s ${cols.join(', ')} now print on each label. Restyle or move them in step 2.`, 'ok');
+}
+
 /* Every designed label's QR code carries that row's full details; a label without a QR gets one
    in its bottom-right corner. */
 function qrShowDetails() {
@@ -515,7 +585,7 @@ const DataView = {
   panelKey() {
     const d = App.data;
     return ['data', d.columns.join('\u0001'), d.rows.length, designFields().join('\u0001'), d.source, d.fileName,
-      !!App.ui.aiBusy, JSON.stringify(App.ui.aiStatus || {}), App.sheet.labels.length, JSON.stringify(qrStatus()),
+      !!App.ui.aiBusy, JSON.stringify(App.ui.aiStatus || {}), App.sheet.labels.length, JSON.stringify(qrStatus()), designedWithoutTextFields().length,
       App.sheet.labels.some((l) => l.design.elements.length)].join('|');
   },
 
@@ -600,6 +670,15 @@ const DataView = {
               : note('check', `Each label has its own QR code, made from ${qs.fields.join(', ')}. Scanning it shows that label’s customer.`, 'ok'),
           ibtn('qr', qs.kind === 'none' ? 'Add a QR with each customer’s details' : qs.kind === 'same' ? 'Make each QR show its customer’s details' : 'Show all customer details in the QR',
             qrShowDetails, (qs.kind === 'own' ? 'small' : 'primary') + ' block', 'Each label’s QR code will hold every column of its row'),
+        ));
+        const textless = designedWithoutTextFields();
+        L.append(section('Details printed on each label',
+          textless.length
+            ? note('alert', `${textless.length === App.sheet.labels.filter((l) => l.design.elements.length).length ? 'Your labels' : plural(textless.length, 'label')} only show the customer inside the QR code — nothing readable is printed.`, 'warn')
+            : note('check', 'The customer’s details are printed as text on each label.', 'ok'),
+          textless.length
+            ? ibtn('text', 'Also print the details as text', showDetailsAsText, 'primary block', 'Adds the name, address and other columns as text that fits the label')
+            : null,
         ));
       }
 
