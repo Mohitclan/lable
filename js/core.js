@@ -1,6 +1,6 @@
 'use strict';
 /*
- * Label Studio — core model, grid geometry, history and storage.
+ * Peelpress — core model, grid geometry, history and storage.
  *
  * Every measurement in the app is in millimetres. The on-screen SVG canvas and the
  * PDF use the very same mm coordinates (origin = top-left of the A4 page), so the
@@ -10,6 +10,7 @@
 const A4 = { w: 210, h: 297 };
 const PT = 25.4 / 72;            // one typographic point in mm
 const MIN_LABEL = 5;             // smallest allowed label edge, mm
+// Storage keys keep the old 'labelstudio' prefix so work saved before the rename to Peelpress still loads.
 const STORE = {
   sheet: 'labelstudio.sheet.v1',
   library: 'labelstudio.library.v1',

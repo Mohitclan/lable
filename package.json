@@ -1,5 +1,5 @@
 {
-  "name": "label-studio",
+  "name": "peelpress",
   "private": true,
   "type": "module",
   "description": "A4 label sheet designer with data merge. Static site plus one Vercel function (api/extract.js).",

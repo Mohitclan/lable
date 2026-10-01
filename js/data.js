@@ -2,7 +2,7 @@
 /* Step 3 — Data: fill the label design from a CSV, Excel sheet, PDF, photo or pasted text. */
 
 const MAX_UPLOAD = 3.2 * 1024 * 1024; // Vercel request limit is 4.5 MB after base64 encoding
-const PASSCODE_KEY = 'labelstudio.passcode';
+const PASSCODE_KEY = 'labelstudio.passcode'; // old prefix kept so a saved passcode survives the rename
 
 /* ---------------------------------------------------------------- parsing */
 

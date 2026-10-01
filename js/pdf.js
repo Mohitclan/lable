@@ -23,7 +23,7 @@ function buildPDF(sheet, data = dataActive() ? App.data : null) {
       sheet.labels.forEach((l) => drawLabelPDF(doc, l, sheet));
     }
   }
-  doc.setProperties({ title: sheet.name || 'Labels', creator: 'Label Studio' });
+  doc.setProperties({ title: sheet.name || 'Labels', creator: 'Peelpress' });
   return doc;
 }
 

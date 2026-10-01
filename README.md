@@ -1,4 +1,4 @@
-# Label Studio — A4 Label Designer
+# Peelpress — A4 Label Designer
 
 Design A4 sticker sheets, fill them from a spreadsheet, PDF or photo, and print them at exact physical
 size.

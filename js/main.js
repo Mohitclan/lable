@@ -294,9 +294,9 @@ async function startOver() {
 }
 
 function exportBackup() {
-  const data = { app: 'label-studio', version: 1, exportedAt: new Date().toISOString(), sheet: App.sheet, library: App.library, images: App.images };
+  const data = { app: 'peelpress', version: 1, exportedAt: new Date().toISOString(), sheet: App.sheet, library: App.library, images: App.images };
   const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
-  const a = h('a', { href: url, download: `label-studio-backup-${new Date().toISOString().slice(0, 10)}.json` });
+  const a = h('a', { href: url, download: `peelpress-backup-${new Date().toISOString().slice(0, 10)}.json` });
   document.body.append(a);
   a.click();
   a.remove();
@@ -312,7 +312,7 @@ function importBackup() {
     if (!f) return;
     try {
       const data = JSON.parse(await f.text());
-      if (data.app !== 'label-studio' || !data.sheet || !data.library) throw new Error('This is not a Label Studio backup file.');
+      if (!['peelpress', 'label-studio'].includes(data.app) || !data.sheet || !data.library) throw new Error('This is not a Peelpress backup file.');
       if (!(await confirmBox('Import backup?', 'This replaces the current sheet, saved templates, layouts and company profile with the backup contents.', 'Import'))) return;
       App.images = data.images || {};
       App.imagesDirty = true;
