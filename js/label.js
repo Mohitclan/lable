@@ -646,15 +646,16 @@ const LabelView = {
         textAreaField({ label: 'QR content — a link, text, or {{field}}', id: 'propQR', rows: 3, get: get('data', ''), set: set('data') }),
         fieldChoices().length ? selectField({
           label: 'Different QR on every label — take it from', wide: true,
-          options: [['', 'Choose a data field…'], ...fieldChoices().map((f) => [f, f])],
+          options: [['', 'Choose a data field…'], ['__all__', 'All of the customer’s details'], ...fieldChoices().map((f) => [f, f])],
           get: () => '',
           set: (v) => {
             if (!v) return;
-            setElProp(id, 'data', `{{${v}}}`);
+            const content = v === '__all__' ? detailsQRText(App.data.columns.length ? App.data.columns : fieldChoices()) : `{{${v}}}`;
+            setElProp(id, 'data', content);
             App.data.mapping = autoMap(designFields(), App.data.columns, App.data.mapping);
             saveData();
             const ta = $('#propQR');
-            if (ta) ta.value = `{{${v}}}`;
+            if (ta) ta.value = content;
           },
         }) : null,
         h('p', { class: 'hint' }, dynText(() => {

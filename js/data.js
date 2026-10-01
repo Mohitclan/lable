@@ -211,6 +211,48 @@ async function clearData() {
   requestRender(true);
 }
 
+/* ---------------------------------------------------------------- QR codes from data */
+
+/* QR content that carries every column of a row, one "Column: value" line each. */
+function detailsQRText(cols = App.data.columns) {
+  return cols.map((c) => `${c}: {{${c}}}`).join('\n');
+}
+
+/* What the QR codes on the sheet do with data: none, the same code everywhere, or each label its own. */
+function qrStatus() {
+  const qrs = App.sheet.labels.flatMap((l) => l.design.elements.filter((e) => e.type === 'qr'));
+  if (!qrs.length) return { kind: 'none' };
+  const fields = [...new Set(qrs.flatMap((q) => [...String(q.data || '').matchAll(FIELD_RE)].map((m) => m[1])))];
+  return fields.length ? { kind: 'own', fields } : { kind: 'same', data: String(qrs[0].data || '') };
+}
+
+/* Every designed label's QR code carries that row's full details; a label without a QR gets one
+   in its bottom-right corner. */
+function qrShowDetails() {
+  if (!App.data.columns.length) { toast('Add a CSV or Excel file first.', 'warn'); return; }
+  if (!App.sheet.labels.some((l) => l.design.elements.length)) { toast('Design a label first (step 2), or use “Create a design from my columns”.', 'warn'); return; }
+  const text = detailsQRText();
+  let added = 0;
+  mutate('qr-details', () => {
+    for (const l of App.sheet.labels) {
+      if (!l.design.elements.length) continue;
+      const qrs = l.design.elements.filter((e) => e.type === 'qr');
+      if (qrs.length) {
+        qrs.forEach((q) => { q.data = text; });
+      } else {
+        const size = clamp(Math.min(l.w, l.h) * 0.3, 15, 30);
+        const m = Math.min(5, l.w * 0.06);
+        l.design.elements.push({ id: uid(), type: 'qr', data: text, ecc: 'M', color: '#000000', bg: '#ffffff', bgNone: false, x: l.w - m - size, y: l.h - m - size, w: size, h: size });
+        added++;
+      }
+    }
+  });
+  App.data.mapping = autoMap(designFields(), App.data.columns, App.data.mapping);
+  saveData();
+  requestRender(true);
+  toast(`Every label’s QR code now shows that customer’s ${App.data.columns.join(', ')}.${added ? ' A QR code was added to the bottom-right corner — move it in step 2 if it covers something.' : ''}`, 'ok');
+}
+
 /* Adds the data columns to an existing design as one {{field}} text block, in free space below
    what is already there (or at the bottom), without touching anything else. */
 function addColumnsToDesign(l) {
@@ -382,6 +424,8 @@ function dataWarnings() {
     const many = blank.length > 1;
     out.push({ level: 'info', ids: [], msg: `Label${many ? 's' : ''} ${blank.join(', ')} ${many ? 'have' : 'has'} no design of ${many ? 'their' : 'its'} own, so ${many ? 'they use' : 'it uses'} Label ${src + 1}’s design.` });
   }
+  const qs = qrStatus();
+  if (qs.kind === 'same') out.push({ level: 'warn', ids: [], msg: 'Every label has the same QR code. Use “Make each QR show its customer’s details” so scanning shows that label’s customer.' });
   if (d.notes) out.push({ level: 'info', ids: [], msg: `AI note: ${d.notes}` });
   return out;
 }
@@ -455,7 +499,8 @@ const DataView = {
   panelKey() {
     const d = App.data;
     return ['data', d.columns.join('\u0001'), d.rows.length, designFields().join('\u0001'), d.source, d.fileName,
-      !!App.ui.aiBusy, JSON.stringify(App.ui.aiStatus || {}), App.sheet.labels.length].join('|');
+      !!App.ui.aiBusy, JSON.stringify(App.ui.aiStatus || {}), App.sheet.labels.length, JSON.stringify(qrStatus()),
+      App.sheet.labels.some((l) => l.design.elements.length)].join('|');
   },
 
   renderPanels() {
@@ -527,6 +572,18 @@ const DataView = {
             : ibtn('sparkles', 'Create a design from my columns', designFromColumns, 'primary block'),
           row(btn('Add fields myself in step 2', () => setMode('label'), 'small ghost'),
             App.sheet.labels.some((l) => l.design.elements.length) ? btn('Replace with a new design', designFromColumns, 'small ghost') : null),
+        ));
+      }
+
+      // QR code: same everywhere, or each customer's own details
+      if (App.sheet.labels.some((l) => l.design.elements.length)) {
+        const qs = qrStatus();
+        L.append(section('QR code on each label',
+          qs.kind === 'none' ? note('qr', 'Your labels have no QR code.')
+            : qs.kind === 'same' ? note('alert', `Every label has the same QR code (“${qs.data.length > 40 ? qs.data.slice(0, 40) + '…' : qs.data}”), so it won’t show the customer.`, 'warn')
+              : note('check', `Each label has its own QR code, made from ${qs.fields.join(', ')}. Scanning it shows that label’s customer.`, 'ok'),
+          ibtn('qr', qs.kind === 'none' ? 'Add a QR with each customer’s details' : qs.kind === 'same' ? 'Make each QR show its customer’s details' : 'Show all customer details in the QR',
+            qrShowDetails, (qs.kind === 'own' ? 'small' : 'primary') + ' block', 'Each label’s QR code will hold every column of its row'),
         ));
       }
 
